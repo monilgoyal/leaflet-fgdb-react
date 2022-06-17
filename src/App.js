@@ -2,7 +2,7 @@ import { MapContainer, TileLayer, GeoJSON, CircleMarker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from "react";
 import { colorbrewer } from './color';
-import fgdb from 'fgdb'
+import Worker from './file.worker';
 
 
 //create function to show fearures and property => pass as onEachFeature props in GeoJSON component 
@@ -47,16 +47,24 @@ function App() {
 
   useEffect(() => {
     //demo.gdb.zip is available in public folder
-    geo('demo.gdb.zip').then((geojsondata) => {
-      setOverlay(geojsondata)
-    })
-  }, [])
+    const messageWorker = new Worker();
+    const message = {
+      convert: location.protocol + '//' + location.host + '/demo.gdb.zip',
+    };
+    messageWorker.postMessage(message);
+    messageWorker.onerror = (err) => {
+      console.error(err)
+      setOverlay({});
+    };
+    messageWorker.onmessage = (e) => {
+      if (e.data) {
+        setOverlay(e.data.result);
+      } else {
+        setOverlay({});
+      }
+    };
+  }, []);
 
-  //async function to convert gdb to geojson
-  const geo = async (file) => {
-    const res = await fgdb(file)
-    return res
-  }
   return (
     <>
       <MapContainer center={[42.3560069, -71.0458374]} zoom={11} style={{ height: '100vh', width: '100wh' }}>
